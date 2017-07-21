@@ -116,6 +116,30 @@
 
 # pragma mark - Controller Position And Size Editing
 
+-(UIImage*) OriginImage:(UIImage *)image scaleToSize:(CGSize)size
+{
+    // 创建一个bitmap的context
+    // 并把它设置成为当前正在使用的context
+    UIGraphicsBeginImageContext(size);
+    // 绘制改变大小的图片
+    [image drawInRect:CGRectMake(0, 0, size.width, size.height)];
+    // 从当前context中创建一个改变大小后的图片
+    UIImage* scaledImage = UIGraphicsGetImageFromCurrentImageContext();
+    // 使当前的context出堆栈
+    UIGraphicsEndImageContext();
+    // 返回新的改变大小后的图片
+    return scaledImage;
+}
+// 是否为ipad设备
+-(BOOL) isIpadDevice
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
+    {
+        return YES;
+    }
+    return NO;
+}
+
 - (void)setupTouchControls
 {
 #if !TARGET_OS_TV
@@ -132,6 +156,11 @@
 		
 		if ([controlType isEqualToString:PVDPad])
 		{
+            if([self isIpadDevice])
+            {
+                controlSize = CGSizeMake(280, 280);
+            }
+            
 			CGFloat xPadding = 5;
 			CGFloat bottomPadding = 16;
 			CGFloat dPadOriginY = MIN(controlOriginY - bottomPadding, CGRectGetHeight(self.view.frame) - controlSize.height - bottomPadding);
@@ -167,12 +196,48 @@
 				for (NSDictionary *groupedButton in groupedButtons)
 				{
 					CGRect buttonFrame = CGRectFromString([groupedButton objectForKey:PVControlFrameKey]);
-					JSButton *button = [[JSButton alloc] initWithFrame:buttonFrame];
-					[[button titleLabel] setText:[groupedButton objectForKey:PVControlTitleKey]];
-					[button setBackgroundImage:[UIImage imageNamed:@"button"]];
-					[button setBackgroundImagePressed:[UIImage imageNamed:@"button-pressed"]];
-					[button setDelegate:self];
-					[self.buttonGroup addSubview:button];
+                    
+                    
+                    
+                     /*重新设置图片大小*/
+                    if([self isIpadDevice])//是ipad设备
+                    {
+                        
+                        if([@"A" compare: [groupedButton objectForKey:PVControlTitleKey]] == 0 )
+                        {
+                            NSLog(@"AAAAA");
+                            //{{116,60},{60,60}}
+                            buttonFrame = CGRectMake(56, -60, 120, 120);
+                        }else if ([@"B" compare: [groupedButton objectForKey:PVControlTitleKey]] == 0 )
+                        {
+                            NSLog(@"BBBB");
+                            buttonFrame = CGRectMake(-60, 56, 120, 120);
+                        }
+                        
+                        JSButton *button = [[JSButton alloc] initWithFrame:buttonFrame];
+                        [[button titleLabel] setText:[groupedButton objectForKey:PVControlTitleKey]];
+                        
+                        
+                        CGSize size = CGSizeMake(120, 120);
+                        
+                        UIImage *imgbg = [self OriginImage:[UIImage imageNamed:@"button"] scaleToSize:size];
+                        
+                        UIImage *imgbgpress = [self OriginImage:[UIImage imageNamed:@"button-pressed"] scaleToSize:size];
+                        
+                        [button setBackgroundImage:imgbg];
+                        [button setBackgroundImagePressed:imgbgpress];
+                        
+                        [button setDelegate:self];
+                        [self.buttonGroup addSubview:button];
+                        
+                    }else{//非ipad设备
+                        JSButton *button = [[JSButton alloc] initWithFrame:buttonFrame];
+                        [[button titleLabel] setText:[groupedButton objectForKey:PVControlTitleKey]];
+                        [button setBackgroundImage:[UIImage imageNamed:@"button"]];
+                        [button setBackgroundImagePressed:[UIImage imageNamed:@"button-pressed"]];
+                        [button setDelegate:self];
+                        [self.buttonGroup addSubview:button];
+                    }
 				}
 				
 				PVButtonGroupOverlayView *buttonOverlay = [[PVButtonGroupOverlayView alloc] initWithButtons:[self.buttonGroup subviews]];
@@ -191,14 +256,30 @@
 			CGFloat xPadding = 10;
 			CGFloat yPadding = 10;
 
+            if([self isIpadDevice])
+            {
+                controlSize = CGSizeMake(controlSize.width*3, controlSize.height*3);
+            }
+            
 			CGRect leftShoulderFrame = CGRectMake(xPadding, yPadding, controlSize.width, controlSize.height);
 			
 			if (!self.leftShoulderButton)
 			{
 				self.leftShoulderButton = [[JSButton alloc] initWithFrame:leftShoulderFrame];
 				[[self.leftShoulderButton titleLabel] setText:[control objectForKey:PVControlTitleKey]];
-				[self.leftShoulderButton setBackgroundImage:[UIImage imageNamed:@"button-thin"]];
-				[self.leftShoulderButton setBackgroundImagePressed:[UIImage imageNamed:@"button-thin-pressed"]];
+                if([self isIpadDevice])
+                {
+                    CGSize size = CGSizeMake(62*3, 22*3);
+                    UIImage *leftimg = [self OriginImage:[UIImage imageNamed:@"button-thin"] scaleToSize:size];
+                    UIImage *leftimgpress = [self OriginImage:[UIImage imageNamed:@"button-thin-pressed"] scaleToSize:size];
+                    
+                    [self.leftShoulderButton setBackgroundImage:leftimg];
+                    [self.leftShoulderButton setBackgroundImagePressed:leftimgpress];
+                }else{
+                    [self.leftShoulderButton setBackgroundImage:[UIImage imageNamed:@"button-thin"]];
+                    [self.leftShoulderButton setBackgroundImagePressed:[UIImage imageNamed:@"button-thin-pressed"]];
+                }
+				
 				[self.leftShoulderButton setDelegate:self];
 				[self.leftShoulderButton setTitleEdgeInsets:UIEdgeInsetsMake(0, 0, 4, 0)];
 				[self.leftShoulderButton setAlpha:alpha];
@@ -212,6 +293,13 @@
 		}
 		else if ([controlType isEqualToString:PVRightShoulderButton])
 		{
+            
+            if([self isIpadDevice])
+            {
+                controlSize = CGSizeMake(controlSize.width*3, controlSize.height*3);
+            }
+            
+            
 			CGFloat xPadding = 10;
 			CGFloat yPadding = 10;
 			CGRect rightShoulderFrame = CGRectMake(self.view.frame.size.width - controlSize.width - xPadding, yPadding, controlSize.width, controlSize.height);
@@ -220,8 +308,21 @@
 			{
 				self.rightShoulderButton = [[JSButton alloc] initWithFrame:rightShoulderFrame];
 				[[self.rightShoulderButton titleLabel] setText:[control objectForKey:PVControlTitleKey]];
-				[self.rightShoulderButton setBackgroundImage:[UIImage imageNamed:@"button-thin"]];
-				[self.rightShoulderButton setBackgroundImagePressed:[UIImage imageNamed:@"button-thin-pressed"]];
+                
+                if([self isIpadDevice])
+                {
+                    CGSize size = CGSizeMake(62*3, 22*3);
+                    UIImage *leftimg = [self OriginImage:[UIImage imageNamed:@"button-thin"] scaleToSize:size];
+                    UIImage *leftimgpress = [self OriginImage:[UIImage imageNamed:@"button-thin-pressed"] scaleToSize:size];
+                    
+                    [self.rightShoulderButton setBackgroundImage:leftimg];
+                    [self.rightShoulderButton setBackgroundImagePressed:leftimgpress];
+                }else{
+                    [self.rightShoulderButton setBackgroundImage:[UIImage imageNamed:@"button-thin"]];
+                    [self.rightShoulderButton setBackgroundImagePressed:[UIImage imageNamed:@"button-thin-pressed"]];
+                }
+                
+				
 				[self.rightShoulderButton setDelegate:self];
 				[self.rightShoulderButton setTitleEdgeInsets:UIEdgeInsetsMake(0, 0, 4, 0)];
 				[self.rightShoulderButton setAlpha:alpha];
